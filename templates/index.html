@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Invoice Table</title>
+  <style>
+  body {
+    background-color: #121212;
+    color: #e0e0e0;
+    font-family: sans-serif;
+    margin: 20px;
+  }
+
+  h1, h2 {
+    color: #ffffff;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 20px;
+    background-color: #1e1e1e;
+    color: #ffffff;
+  }
+
+  th, td {
+    border: 1px solid #444;
+    padding: 10px;
+  }
+
+  th {
+    background-color: #333;
+    color: #ffffff;
+  }
+
+  a {
+    cursor: pointer;
+    color: #64b5f6;
+    text-decoration: underline;
+  }
+
+  a:hover {
+    color: #90caf9;
+  }
+
+  button {
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+
+  button:hover {
+    background-color: #444;
+  }
+
+  #result {
+    margin-bottom: 20px;
+  }
+</style>
+</head>
+
+<body>
+  <h1>Last Result:</h1>
+  <div id="result">{{ result.result }}</div>
+  <button onclick="runScript()">Update Table</button>
+  <p>Total Amount: <span id="total">0</span></p>
+
+  <h2>Invoice List</h2>
+  <table id="invoiceTable">
+    <thead>
+      <tr>
+        <th>Invoice Number</th>
+        <th>Date</th>
+        <th>Carrier</th>
+        <th>Seller</th>
+        <th>Amount</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    // Inject JSON result from Flask
+    const data = {{ result | tojson | safe }};
+
+    function renderTable(content) {
+      const tbody = document.querySelector('#invoiceTable tbody');
+      tbody.innerHTML = "";
+
+      if (content && Array.isArray(content)) {
+        content.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${item.invoiceNumber}</td>
+            <td>${new Date(item.invoiceDate).toLocaleDateString()}</td>
+            <td>${item.carrierName}</td>
+            <td>${item.sellerName}</td>
+            <td>${item.totalAmount}</td>
+            <td><a onclick="postToken('${item.token}')">View Details</a></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } else {
+        tbody.innerHTML = "<tr><td colspan='6'>No data</td></tr>";
+      }
+    }
+
+    function renderTotal(total) {
+      document.getElementById('total').innerText = total || 0;
+    }
+
+    function runScript() {
+      document.getElementById('result').innerText = "Runing.";
+      fetch('/run', { method: 'POST' })
+        .then(res => res.json())  // ✅ Proper fetch response parsing
+        .then(data => {
+          document.getElementById('result').innerText = "Updated.";
+          renderTable(data.content);
+          document.getElementById('total').innerText = data.total;
+        });
+    }
+
+    function postToken(token) {
+      window.open('/token_page?q=' + encodeURIComponent(token), '_blank');
+    }
+
+    // Render table on page load
+    renderTable(data.content);
+    renderTotal(data.total);
+  </script>
+</body>
+
+</html>

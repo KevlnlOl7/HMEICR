@@ -1,0 +1,29 @@
+version: "3.8"
+services:
+  web:
+    build: .
+    ports:
+      - "8080:5000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    container_name: blhmeicr-mongo
+    restart: unless-stopped
+    ports:
+      - "27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: blhmeicr
+
+      MONGO_APP_DB: myapp
+      MONGO_APP_USER: myapp_user
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD}
+    volumes:
+      - ./mongo-data:/data/db:Z
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/init.js:ro

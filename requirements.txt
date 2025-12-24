@@ -1,0 +1,18 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+python-dotenv
+
+flask
+flask-login
+passlib[bcrypt]
+pymongo
+cryptography
+celery
+
+selenium
+requests
+
+torch
+torchvision
+torchaudio
+
+easyocr
