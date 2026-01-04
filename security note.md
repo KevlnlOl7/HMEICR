@@ -44,3 +44,6 @@ While the application code implements standard security measures, the **deployme
 *   **For Public Deployment**: **Yes**, but ONLY if configured with **HTTPS** and strong, secret environment variables.
 
 *Last Updated: 2026-01-04*
+
+> All AI said about the security is true.
+> sign by GGQQmax
