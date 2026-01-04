@@ -1,17 +1,32 @@
-FROM python:3.11-slim
+# Stage 1: Build the React Frontend
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY client/package*.json ./
+RUN npm install
+COPY client/ ./
+RUN npm run build
 
+# Stage 2: Setup the Flask Backend
+FROM python:3.11-slim
 WORKDIR /app
 
-# 1. Copy only requirements first
+# Install system dependencies if needed (none strictly for pure python/flask here)
+# RUN apt-get update && apt-get install -y ...
+
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 2. Install dependencies (cached if requirements.txt unchanged)
-RUN pip install --upgrade pip \
- && pip install -r requirements.txt
-
-# 3. Copy the rest of the app
+# Copy backend files
 COPY . .
 
-RUN chmod -R a+r /app
+# Copy built frontend from Stage 1
+COPY --from=build /app/dist ./client/dist
+
+# Expose the Flask port
+EXPOSE 5000
+
+# Environment variables (can be overridden)
+ENV FLASK_APP=server.py
+ENV FLASK_ENV=production
 
 CMD ["python", "server.py"]

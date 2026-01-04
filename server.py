@@ -1,4 +1,5 @@
-from flask import Flask, request, redirect, url_for, render_template, flash
+from flask import Flask, request, redirect, url_for, render_template, flash, jsonify, send_from_directory
+import os
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from pymongo import MongoClient
 from passlib.context import CryptContext
@@ -13,9 +14,19 @@ app = Flask(__name__)
 dotenv.load_dotenv()
 app.secret_key = getenv("secret_key")
 
+# Serve React App
+@app.route("/", defaults={'path': ''})
+@app.route("/<path:path>")
+def serve(path):
+    static_folder = os.path.join(os.getcwd(), 'client/dist')
+    if path != "" and os.path.exists(os.path.join(static_folder, path)):
+        return send_from_directory(static_folder, path)
+    return send_from_directory(static_folder, 'index.html')
+
 
 # ---------- MongoDB ----------
-client = MongoClient("mongodb://localhost:27017")#wait to change to user login
+mongo_uri = getenv("MONGO_URI", "mongodb://localhost:27017")
+client = MongoClient(mongo_uri)
 db = client["myapp"]
 users = db["users"]
 einvoice_login = db["einvoice_login"]
@@ -52,16 +63,14 @@ def register():
     password = request.form["password"]
 
     if users.find_one({"email": email}):
-        flash("User already exists")
-        return redirect(url_for("login"))
+        return jsonify({"success": False, "message": "User already exists"}), 400
 
     users.insert_one({
         "email": email,
         "password": hash_password(password)
     })
 
-    flash("Registered successfully")
-    return redirect(url_for("login"))
+    return jsonify({"success": True, "message": "Registered successfully"}), 201
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -70,11 +79,10 @@ def login():
 
     user = users.find_one({"email": email})
     if not user or not verify_password(password, user["password"]):
-        flash("Invalid credentials")
-        return redirect(url_for("login"))
+        return jsonify({"success": False, "message": "Invalid credentials"}), 401
 
     login_user(User(user))
-    return redirect(url_for("dashboard"))
+    return jsonify({"success": True, "message": "Login successful"}), 200
 
 @app.route("/dashboard")
 @login_required
@@ -98,7 +106,7 @@ def create_einvoice_login():
             request.form["einvoice_password"]
         )
     })
-    return redirect(url_for("dashboard"))
+    return jsonify({"success": True, "message": "E-Invoice credentials saved"}), 201
 
 @app.route("/einvoice_login/edit", methods=["POST"])
 @login_required
@@ -130,18 +138,19 @@ def create_note():
             request.form["receipt_date"], "%Y-%m-%d"
         )
     })
-    return redirect(url_for("dashboard"))
+    return jsonify({"success": True, "message": "Receipt created"}), 201
 
 @app.route("/receipt")
 @login_required
 def list_receipt():
-    user_receipt = receipt.find({
+    user_receipt = list(receipt.find({
         "owner_id": ObjectId(current_user.id)
-    })
-    return Response(
-        json_util.dumps(user_receipt),
-        mimetype="application/json"
-    )
+    }))
+    for r in user_receipt:
+        r["_id"] = str(r["_id"])
+        r["owner_id"] = str(r["owner_id"])
+    
+    return jsonify(user_receipt), 200
 
 @app.route("/receipt/<receipt_id>/edit", methods=["POST"])
 @login_required
@@ -177,8 +186,7 @@ def delete_note(receipt_id):
 def invoice_list():
     api = get_user_api(current_user.id)
     if not api:
-        flash("No e-invoice credentials found.")
-        return redirect(url_for("einvoice_login"))
+        return jsonify({"success": False, "message": "No e-invoice credentials found."}), 401
 
     invoices = api.get_invoice_list()  # example API call
     return Response(
