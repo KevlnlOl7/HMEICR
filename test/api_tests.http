@@ -1,0 +1,33 @@
+@baseUrl = http://127.0.0.1:5000
+
+### Register User
+POST {{baseUrl}}/register
+Content-Type: application/x-www-form-urlencoded
+
+email=test@example.com&password=password123
+
+### Login User
+# @name login
+POST {{baseUrl}}/login
+Content-Type: application/x-www-form-urlencoded
+
+email=test@example.com&password=password123
+
+### Get Dashboard (Protected)
+GET {{baseUrl}}/dashboard
+Cookie: session={{login.response.headers.Set-Cookie}}
+
+### Create Receipt (Protected)
+POST {{baseUrl}}/receipt/create
+Content-Type: application/x-www-form-urlencoded
+Cookie: session={{login.response.headers.Set-Cookie}}
+
+title=Lunch&currency=TWD&receipt_date=2024-01-01
+
+### List Receipts (Protected)
+GET {{baseUrl}}/receipt
+Cookie: session={{login.response.headers.Set-Cookie}}
+
+### Logout
+GET {{baseUrl}}/logout
+Cookie: session={{login.response.headers.Set-Cookie}}

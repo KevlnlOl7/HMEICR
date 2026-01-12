@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HMEICR - Vanilla</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="main.js"></script>
+  <!-- SECURITY: Content Security Policy to prevent XSS -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self';">
+</head>
+
+<body>
+  <nav id="navbar" class="hidden">
+    <div class="nav-content">
+      <h1>HMEICR</h1>
+      <div class="nav-user">
+        <button id="theme-toggle">🌙 Theme</button>
+        <span id="user-email"></span>
+        <button id="logout-btn">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div id="app">
+    <!-- Views will be injected here -->
+
+    <!-- Login View -->
+    <div id="login-view" class="view hidden">
+      <div class="card">
+        <h2>Login</h2>
+        <form id="login-form">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" name="email" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" name="password" required>
+          </div>
+          <button type="submit">Login</button>
+        </form>
+        <p>Don't have an account? <a href="#" id="go-to-register">Register</a></p>
+      </div>
+    </div>
+
+    <!-- Register View -->
+    <div id="register-view" class="view hidden">
+      <div class="card">
+        <h2>Register</h2>
+        <form id="register-form">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" name="email" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" name="password" required>
+          </div>
+          <button type="submit">Register</button>
+        </form>
+        <p>Already have an account? <a href="#" id="go-to-login">Login</a></p>
+      </div>
+    </div>
+
+    <!-- Dashboard View -->
+    <div id="dashboard-view" class="view hidden">
+
+      <div class="stats-container">
+        <div class="card stat-card">
+          <h3>Total Amount This Month</h3>
+          <p class="stat-value" id="total-month-amount">0</p>
+        </div>
+      </div>
+
+      <div class="dashboard-header">
+        <h2>My Receipts</h2>
+        <button id="show-add-receipt-modal" class="btn-primary">+ Add Receipt</button>
+      </div>
+
+      <!-- Receipt List -->
+      <div id="receipt-list" class="receipt-list">
+        <!-- Javascript will populate this -->
+      </div>
+
+      <!-- Modal for Adding Receipt -->
+      <div id="add-receipt-modal" class="modal hidden">
+        <div class="modal-content">
+          <h3>Add Receipt</h3>
+          <form id="add-receipt-form">
+            <div class="form-group">
+              <label>Title</label>
+              <input type="text" name="title" required>
+            </div>
+            <div class="form-group">
+              <label>Amount</label>
+              <input type="number" name="amount" step="0.01" required>
+            </div>
+            <div class="form-group">
+              <label>Currency</label>
+              <input type="text" name="currency" value="TWD" required>
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" name="receipt_date" required>
+            </div>
+            <div class="modal-actions">
+              <button type="button" id="close-modal-btn">Cancel</button>
+              <button type="submit" class="btn-primary">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Modal for Editing Receipt -->
+      <div id="edit-receipt-modal" class="modal hidden">
+        <div class="modal-content">
+          <h3>Edit Receipt</h3>
+          <form id="edit-receipt-form">
+            <input type="hidden" name="receipt_id">
+            <div class="form-group">
+              <label>Title</label>
+              <input type="text" name="title" required>
+            </div>
+            <div class="form-group">
+              <label>Amount</label>
+              <input type="number" name="amount" step="0.01" required>
+            </div>
+            <div class="form-group">
+              <label>Currency</label>
+              <input type="text" name="currency" value="USD" required>
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" name="receipt_date" required>
+            </div>
+            <div class="modal-actions" style="justify-content: space-between;">
+              <button type="button" id="delete-receipt-btn" class="btn-danger">Delete</button>
+              <div style="display: flex; gap: 1rem;">
+                <button type="button" id="close-edit-modal-btn">Cancel</button>
+                <button type="submit" class="btn-primary">Update</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
