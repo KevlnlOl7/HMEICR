@@ -11,7 +11,7 @@ graph TD
     subgraph Docker Network
         Flask
         MongoDB
-        ClientContainer[Client Container (Vite/Proxy)]
+        ClientContainer["Client Container (Vite/Proxy)"]
     end
 
     ClientContainer -->|Proxy /api| Flask
