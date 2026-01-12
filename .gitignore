@@ -2,8 +2,10 @@
 .venv*
 venv*
 data*
-test*
+
 /api/__pycache__
 result.json
 /save_result
 __pycache__/*
+mongo-data/_mdb_catalog.wt
+/mongo-data

@@ -8,3 +8,4 @@ client/node_modules
 node_modules
 dist
 client/dist
+mongo-data
