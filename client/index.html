@@ -1,13 +1,101 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>client</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HMEICR - Vanilla</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="module" src="main.js"></script>
+</head>
+<body>
+    <nav id="navbar" class="hidden">
+        <div class="nav-content">
+            <h1>HMEICR</h1>
+            <div class="nav-user">
+                <span id="user-email"></span>
+                <button id="logout-btn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div id="app">
+        <!-- Views will be injected here -->
+        
+        <!-- Login View -->
+        <div id="login-view" class="view hidden">
+            <div class="card">
+                <h2>Login</h2>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" name="password" required>
+                    </div>
+                    <button type="submit">Login</button>
+                </form>
+                <p>Don't have an account? <a href="#" id="go-to-register">Register</a></p>
+            </div>
+        </div>
+
+        <!-- Register View -->
+        <div id="register-view" class="view hidden">
+            <div class="card">
+                <h2>Register</h2>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" name="password" required>
+                    </div>
+                    <button type="submit">Register</button>
+                </form>
+                <p>Already have an account? <a href="#" id="go-to-login">Login</a></p>
+            </div>
+        </div>
+
+        <!-- Dashboard View -->
+        <div id="dashboard-view" class="view hidden">
+            <div class="dashboard-header">
+                <h2>My Receipts</h2>
+                <button id="show-add-receipt-modal" class="btn-primary">+ Add Receipt</button>
+            </div>
+
+            <!-- Receipt List -->
+            <div id="receipt-list" class="receipt-list">
+                <!-- Javascript will populate this -->
+            </div>
+
+            <!-- Modal for Adding Receipt -->
+            <div id="add-receipt-modal" class="modal hidden">
+                <div class="modal-content">
+                    <h3>Add Receipt</h3>
+                    <form id="add-receipt-form">
+                        <div class="form-group">
+                            <label>Title</label>
+                            <input type="text" name="title" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Currency</label>
+                            <input type="text" name="currency" value="USD" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" name="receipt_date" required>
+                        </div>
+                        <div class="modal-actions">
+                            <button type="button" id="close-modal-btn">Cancel</button>
+                            <button type="submit" class="btn-primary">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
 </html>
