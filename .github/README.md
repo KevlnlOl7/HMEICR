@@ -68,3 +68,6 @@ HMEICR (家計與電子發票管理系統) 是一個用於追蹤收據並與台�
 1.  進入 client 目錄: `cd client`
 2.  安裝相依套件: `npm install`
 3.  啟動開發伺服器: `npm run dev`
+
+### Demo影片
+https://www.youtube.com/watch?v=ok-1lZCQqwc
