@@ -1,7 +1,7 @@
 # HMEICR Security Note
 **版本：** 2.0  
 **最後更新：** 2026-01-14  
-**維護者：** 許詰祥、張傢寧、許方驗
+**維護者：** 許詰祥、張傢寧、許方彥
 ---
 ## 📋 概述
 本文件說明 HMEICR 應用程式已實作的資訊安全功能，包含前端、後端和基礎架構層面的安全措施。
@@ -219,10 +219,7 @@ EINVOICE_PASSWORD=your-password
 - **資料庫優化：** `artifacts/database_optimization.md`
 - **測試報告：** `artifacts/final_test_report.md`
 - **老師測試指南：** `artifacts/teacher_testing_guide.md`
----
-## 📞 安全問題回報
-如發現安全漏洞，請立即聯絡開發團隊。
-**聯絡方式：** security@hmeicr.local
+
 ---
 ## 📊 安全成效總結
 | 威脅 | 防護措施 | 狀態 |
@@ -239,4 +236,3 @@ EINVOICE_PASSWORD=your-password
 ---
 **文件版本：** 2.0  
 **最後審閱：** 2026-01-14  
-**下次審閱：** 2026-02-14
