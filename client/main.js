@@ -147,9 +147,28 @@ async function register(email, password) {
 }
 
 async function logout() {
-    await fetch('/api/logout');
-    currentUser = null;
-    showView('login');
+    try {
+        await fetch('/api/logout');
+    } catch (err) {
+        // Silently handle logout errors
+    } finally {
+        // Clear sensitive data from memory
+        currentUser = null;
+
+        // Clear all form fields that might contain sensitive data
+        document.querySelectorAll('input[type="password"]').forEach(input => {
+            input.value = '';
+        });
+        document.querySelectorAll('input[type="email"]').forEach(input => {
+            input.value = '';
+        });
+
+        // Clear any validation errors
+        clearAllValidationErrors();
+
+        // Redirect to login
+        showView('login');
+    }
 }
 
 // Receipt Functions
@@ -244,7 +263,8 @@ async function addReceipt(formData) {
             payload.append(pair[0], pair[1]);
         }
 
-        console.log("DEBUG: Sending receipt payload", payload.toString());
+        // Do not log sensitive payload data in production
+        // console.log("DEBUG: Sending receipt payload", payload.toString());
 
         const res = await fetch('/api/receipt/create', {
             method: 'POST',
