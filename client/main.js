@@ -1,9 +1,28 @@
-
 // Import validation functions
 import { validateEmail, validatePassword, showValidationError, clearAllValidationErrors } from './validators.js';
 
+// Import XSS protection utilities
+import { setTextSafely, sanitizeCurrency, sanitizeAmount } from './xss-protection.js';
+
 // State
 let currentUser = null;
+let csrfToken = null;
+
+// Fetch CSRF token on page load
+async function fetchCSRFToken() {
+    try {
+        const res = await fetch('/api/csrf-token');
+        if (res.ok) {
+            const data = await res.json();
+            csrfToken = data.csrf_token;
+        }
+    } catch (err) {
+        console.error('Failed to fetch CSRF token:', err);
+    }
+}
+
+// Initialize CSRF token
+fetchCSRFToken();
 
 // Theme Logic
 const themeToggleBtn = document.getElementById('theme-toggle');
@@ -79,9 +98,14 @@ async function login(email, password) {
         formData.append('email', email);
         formData.append('password', password);
 
+        const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+        if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+        }
+
         const res = await fetch('/api/login', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            headers: headers,
             body: formData
         });
         const data = await res.json();
@@ -126,9 +150,14 @@ async function register(email, password) {
         formData.append('email', email);
         formData.append('password', password);
 
+        const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+        if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+        }
+
         const res = await fetch('/api/register', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            headers: headers,
             body: formData
         });
         const data = await res.json();
