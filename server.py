@@ -18,6 +18,13 @@ from utils.validators import (
     validate_currency,
     sanitize_string
 )
+from utils.security_logger import (
+    log_security_event,
+    log_auth_attempt,
+    log_session_event,
+    log_rate_limit_exceeded,
+    get_client_ip
+)
 
 app = Flask(__name__)
 dotenv.load_dotenv()
@@ -115,12 +122,16 @@ def register():
     email = sanitize_string(email, max_length=254)
 
     if users.find_one({"email": email}):
+        log_security_event('registration_failed', user=email, status='failure',
+                          details={'reason': 'user_already_exists'})
         return jsonify({"success": False, "message": "User already exists"}), 400
 
     users.insert_one({
         "email": email,
         "password": hash_password(password)
     })
+    
+    log_security_event('registration_success', user=email, status='success')
 
     return jsonify({"success": True, "message": "Registered successfully"}), 201
 
@@ -130,19 +141,28 @@ def login():
     email = request.form.get("email", "").strip()
     password = request.form.get("password", "")
     
+    # Log login attempt
+    log_security_event('login_attempt', user=email, status='in_progress')
+    
     # Sanitize email input
     email = sanitize_string(email, max_length=254)
 
     user = users.find_one({"email": email})
     if not user:
+        log_security_event('login_failed', user=email, status='failure', 
+                          details={'reason': 'user_not_found'})
         return jsonify({"success": False, "message": "Invalid credentials"}), 401
     
     is_valid = verify_password(password, user["password"])
     
     if not is_valid:
+        log_security_event('login_failed', user=email, status='failure',
+                          details={'reason': 'invalid_password'})
         return jsonify({"success": False, "message": "Invalid credentials"}), 401
 
     login_user(User(user))
+    log_session_event('login', user=email)
+    
     return jsonify({"success": True, "message": "Login successful"}), 200
 
 @app.route("/api/dashboard")
@@ -153,7 +173,9 @@ def dashboard():
 @app.route("/api/logout")
 @login_required
 def logout():
+    user_email = current_user.email if current_user.is_authenticated else 'unknown'
     logout_user()
+    log_session_event('logout', user=user_email)
     return jsonify({"success": True, "message": "Logged out successfully"}), 200
 
 # ---------- E-Invoice  ----------
@@ -414,6 +436,10 @@ def not_found(error):
 @app.errorhandler(429)
 def ratelimit_handler(error):
     """Handle rate limit exceeded errors"""
+    # Log rate limit violation
+    email = request.form.get('email', 'anonymous')
+    log_rate_limit_exceeded(user=email)
+    
     return jsonify({
         "success": False, 
         "message": "Too many requests. Please try again later."
