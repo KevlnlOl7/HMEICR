@@ -9,10 +9,52 @@ from bson import ObjectId
 from crypto import encrypt_password, decrypt_password
 from datetime import datetime
 import dotenv
+from utils.validators import (
+    validate_email, 
+    validate_password_strength, 
+    validate_amount,
+    validate_date_format,
+    validate_currency,
+    sanitize_string
+)
 
 app = Flask(__name__)
 dotenv.load_dotenv()
 app.secret_key = getenv("secret_key")
+
+# ---------- Security Configuration ----------
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
+from flask_talisman import Talisman
+
+# Rate Limiting
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
+
+# CSRF Protection
+csrf = CSRFProtect(app)
+
+# Temporarily exempt API routes from CSRF until frontend is updated
+# In production, remove these exemptions and implement proper CSRF token handling
+csrf.exempt("api.register")
+csrf.exempt("api.login")
+
+# Security Headers (disabled HTTPS enforcement for development)
+Talisman(app, 
+    force_https=False,  # Set to True in production with HTTPS
+    content_security_policy=None  # Can be configured for stricter CSP
+)
+
+# Session Security
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
 
 # Serve React App
 @app.route("/", defaults={'path': ''})
@@ -56,10 +98,24 @@ def load_user(user_id):
     return User(user) if user else None
 
 # ---------- Routes ----------
-@app.route("/register", methods=["POST"])
+@app.route("/api/register", methods=["POST"])
+@limiter.limit("3 per minute")  # Strict limit for registration
 def register():
-    email = request.form["email"]
-    password = request.form["password"]
+    email = request.form.get("email", "").strip()
+    password = request.form.get("password", "")
+    
+    # Validate email
+    is_valid, error_msg = validate_email(email)
+    if not is_valid:
+        return jsonify({"success": False, "message": error_msg}), 400
+    
+    # Validate password strength
+    is_valid, error_msg = validate_password_strength(password)
+    if not is_valid:
+        return jsonify({"success": False, "message": error_msg}), 400
+    
+    # Sanitize email
+    email = sanitize_string(email, max_length=254)
 
     if users.find_one({"email": email}):
         return jsonify({"success": False, "message": "User already exists"}), 400
@@ -71,20 +127,20 @@ def register():
 
     return jsonify({"success": True, "message": "Registered successfully"}), 201
 
-@app.route("/login", methods=["POST"])
+@app.route("/api/login", methods=["POST"])
+@limiter.limit("5 per minute")  # Prevent brute-force attacks
 def login():
-    email = request.form["email"]
-    password = request.form["password"]
+    email = request.form.get("email", "").strip()
+    password = request.form.get("password", "")
+    
+    # Sanitize email input
+    email = sanitize_string(email, max_length=254)
 
     user = users.find_one({"email": email})
-    print(f"DEBUG LOGIN: Searching for {email}")
     if not user:
-        print("DEBUG LOGIN: User not found")
         return jsonify({"success": False, "message": "Invalid credentials"}), 401
     
-    print(f"DEBUG LOGIN: User found. verifying password...")
     is_valid = verify_password(password, user["password"])
-    print(f"DEBUG LOGIN: Password valid? {is_valid}")
     
     if not is_valid:
         return jsonify({"success": False, "message": "Invalid credentials"}), 401
@@ -92,72 +148,114 @@ def login():
     login_user(User(user))
     return jsonify({"success": True, "message": "Login successful"}), 200
 
-@app.route("/dashboard")
+@app.route("/api/dashboard")
 @login_required
 def dashboard():
-    return "You are logged in 🎉"
+    return jsonify({"success": True, "message": "You are logged in 🎉"}), 200
 
-@app.route("/logout")
+@app.route("/api/logout")
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for("login"))
+    return jsonify({"success": True, "message": "Logged out successfully"}), 200
 
-# ---------- User  ----------
-@app.route("/einvoice_login/create", methods=["POST"])
+# ---------- E-Invoice  ----------
+@app.route("/api/einvoice_login/create", methods=["POST"])
 @login_required
 def create_einvoice_login():
+    username = request.form.get("einvoice_username", "").strip()
+    password = request.form.get("einvoice_password", "").strip()
+    
+    # Sanitize inputs
+    username = sanitize_string(username, max_length=100)
+    
+    if not username or not password:
+        return jsonify({"success": False, "message": "Username and password are required"}), 400
+    
     einvoice_login.insert_one({
         "owner_id": ObjectId(current_user.id),
-        "einvoice_username": request.form["einvoice_username"],
-        "einvoice_password": encrypt_password(
-            request.form["einvoice_password"]
-        )
+        "einvoice_username": username,
+        "einvoice_password": encrypt_password(password)
     })
     return jsonify({"success": True, "message": "E-Invoice credentials saved"}), 201
 
-@app.route("/einvoice_login/edit", methods=["POST"])
+@app.route("/api/einvoice_login/<einvoice_id>/edit", methods=["POST"])
 @login_required
-def edit_einvoice_login(receipt_id):
-    einvoice_login.update_one(
+def edit_einvoice_login(einvoice_id):
+    username = request.form.get("einvoice_username", "").strip()
+    password = request.form.get("einvoice_password", "").strip()
+    
+    # Sanitize inputs
+    username = sanitize_string(username, max_length=100)
+    
+    if not username or not password:
+        return jsonify({"success": False, "message": "Username and password are required"}), 400
+    
+    result = einvoice_login.update_one(
         {
-            "_id": ObjectId(receipt_id),
+            "_id": ObjectId(einvoice_id),
             "owner_id": ObjectId(current_user.id)
         },
         {
             "$set": {
-                "einvoice_username": request.form["einvoice_username"],
-                 "einvoice_password": encrypt_password(
-                     request.form["einvoice_password"]
-                     )
+                "einvoice_username": username,
+                "einvoice_password": encrypt_password(password)
             }
         }
     )
-    return redirect(url_for("dashboard"))
+    
+    if result.modified_count > 0:
+        return jsonify({"success": True, "message": "E-Invoice credentials updated"}), 200
+    else:
+        return jsonify({"success": False, "message": "Credentials not found"}), 404
 
-@app.route("/receipt/create", methods=["POST"])
+@app.route("/api/receipt/create", methods=["POST"])
 @login_required
 def create_note():
-    print(f"DEBUG RECEIPT: Received form data: {request.form}")
-    print(f"DEBUG RECEIPT: Current User ID: {current_user.id}")
     try:
-        amount = float(request.form.get("amount", 0))
+        # Get and validate inputs
+        title = request.form.get("title", "").strip()
+        currency = request.form.get("currency", "").strip()
+        amount_str = request.form.get("amount", "0")
+        receipt_date = request.form.get("receipt_date", "").strip()
+        
+        # Validate amount
+        is_valid, error_msg = validate_amount(amount_str)
+        if not is_valid:
+            return jsonify({"success": False, "message": error_msg}), 400
+        
+        # Validate currency
+        is_valid, error_msg = validate_currency(currency)
+        if not is_valid:
+            return jsonify({"success": False, "message": error_msg}), 400
+        
+        # Validate date format
+        is_valid, error_msg = validate_date_format(receipt_date)
+        if not is_valid:
+            return jsonify({"success": False, "message": error_msg}), 400
+        
+        # Sanitize title
+        title = sanitize_string(title, max_length=200)
+        if not title:
+            return jsonify({"success": False, "message": "Title is required"}), 400
+        
+        amount = float(amount_str)
+        
         receipt.insert_one({
             "owner_id": ObjectId(current_user.id),
-            "title": request.form["title"],
-            "currency": request.form["currency"],
+            "title": title,
+            "currency": currency.upper(),
             "amount": amount,
-            "receipt_date": datetime.strptime(
-                request.form["receipt_date"], "%Y-%m-%d"
-            )
+            "receipt_date": datetime.strptime(receipt_date, "%Y-%m-%d")
         })
-        print("DEBUG RECEIPT: Receipt inserted successfully")
+        
         return jsonify({"success": True, "message": "Receipt created"}), 201
+    except ValueError as e:
+        return jsonify({"success": False, "message": "Invalid date format"}), 400
     except Exception as e:
-        print(f"DEBUG RECEIPT ERROR: {e}")
-        return jsonify({"success": False, "message": str(e)}), 400
+        return jsonify({"success": False, "message": "An error occurred"}), 500
 
-@app.route("/receipt")
+@app.route("/api/receipt")
 @login_required
 def list_receipt():
     user_receipt = list(receipt.find({
@@ -171,11 +269,38 @@ def list_receipt():
     
     return jsonify(user_receipt), 200
 
-@app.route("/receipt/<receipt_id>/edit", methods=["POST"])
+@app.route("/api/receipt/<receipt_id>/edit", methods=["POST"])
 @login_required
 def edit_note(receipt_id):
     try:
-        amount = float(request.form.get("amount", 0))
+        # Get and validate inputs
+        title = request.form.get("title", "").strip()
+        currency = request.form.get("currency", "").strip()
+        amount_str = request.form.get("amount", "0")
+        receipt_date = request.form.get("receipt_date", "").strip()
+        
+        # Validate amount
+        is_valid, error_msg = validate_amount(amount_str)
+        if not is_valid:
+            return jsonify({"success": False, "message": error_msg}), 400
+        
+        # Validate currency
+        is_valid, error_msg = validate_currency(currency)
+        if not is_valid:
+            return jsonify({"success": False, "message": error_msg}), 400
+        
+        # Validate date format
+        is_valid, error_msg = validate_date_format(receipt_date)
+        if not is_valid:
+            return jsonify({"success": False, "message": error_msg}), 400
+        
+        # Sanitize title
+        title = sanitize_string(title, max_length=200)
+        if not title:
+            return jsonify({"success": False, "message": "Title is required"}), 400
+        
+        amount = float(amount_str)
+        
         receipt.update_one(
             {
                 "_id": ObjectId(receipt_id),
@@ -183,28 +308,31 @@ def edit_note(receipt_id):
             },
             {
                 "$set": {
-                    "title": request.form["title"],
-                    "currency": request.form["currency"],
+                    "title": title,
+                    "currency": currency.upper(),
                     "amount": amount,
-                    "receipt_date": datetime.strptime(
-                        request.form["receipt_date"], "%Y-%m-%d"
-                    )
+                    "receipt_date": datetime.strptime(receipt_date, "%Y-%m-%d")
                 }
             }
         )
-        return redirect(url_for("list_receipt"))
+        return jsonify({"success": True, "message": "Receipt updated"}), 200
+    except ValueError as e:
+        return jsonify({"success": False, "message": "Invalid date format"}), 400
     except Exception as e:
-        print(f"Edit Error: {e}")
-        return redirect(url_for("list_receipt"))
+        return jsonify({"success": False, "message": "An error occurred"}), 500
 
-@app.route("/receipt/<receipt_id>/delete", methods=["POST"])
+@app.route("/api/receipt/<receipt_id>/delete", methods=["POST"])
 @login_required
 def delete_note(receipt_id):
-    receipt.delete_one({
+    result = receipt.delete_one({
         "_id": ObjectId(receipt_id),
         "owner_id": ObjectId(current_user.id)
     })
-    return redirect(url_for("list_receipt"))
+    
+    if result.deleted_count > 0:
+        return jsonify({"success": True, "message": "Receipt deleted"}), 200
+    else:
+        return jsonify({"success": False, "message": "Receipt not found"}), 404
 
 @app.route("/einvoice/invoice_list")
 @login_required
@@ -279,6 +407,30 @@ def carrier_invoice_detail():
         json_util.dumps(data),
         mimetype="application/json"
     )
+
+# ------ Error Handlers -------
+@app.errorhandler(404)
+def not_found(error):
+    """Handle 404 errors"""
+    return jsonify({"success": False, "message": "Resource not found"}), 404
+
+@app.errorhandler(429)
+def ratelimit_handler(error):
+    """Handle rate limit exceeded errors"""
+    return jsonify({
+        "success": False, 
+        "message": "Too many requests. Please try again later."
+    }), 429
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle internal server errors"""
+    # Log the error but don't expose details to client
+    app.logger.error(f"Internal error: {error}")
+    return jsonify({
+        "success": False, 
+        "message": "An internal error occurred. Please try again later."
+    }), 500
 
 # ------ User API -------
 def get_user_api(user_id):

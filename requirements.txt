@@ -3,13 +3,17 @@ python-dotenv
 
 flask
 flask-login
-passlib[bcrypt]
 pymongo
+python-dotenv
+passlib
 cryptography
-celery
+requests
+flask-limiter
+flask-wtf
+flask-talisman
+email-validator
 
 selenium
-requests
 fake_useragent
 
 torch
