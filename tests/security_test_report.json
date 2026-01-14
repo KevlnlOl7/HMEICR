@@ -1,0 +1,99 @@
+{
+  "timestamp": "2026-01-14T16:40:55.943146",
+  "total": 18,
+  "passed": 12,
+  "failed": 6,
+  "pass_rate": "66.7%",
+  "results": [
+    {
+      "test": "密碼驗證: 短密碼",
+      "passed": true,
+      "details": "預期失敗 (< 8字元) - 狀態碼: 400, 訊息: Password must be at least 8 characters long"
+    },
+    {
+      "test": "密碼驗證: 無大寫",
+      "passed": true,
+      "details": "預期失敗 (缺少大寫字母) - 狀態碼: 400, 訊息: Password must contain at least one uppercase letter"
+    },
+    {
+      "test": "密碼驗證: 無小寫",
+      "passed": true,
+      "details": "預期失敗 (缺少小寫字母) - 狀態碼: 400, 訊息: Password must contain at least one lowercase letter"
+    },
+    {
+      "test": "密碼驗證: 無數字",
+      "passed": false,
+      "details": "預期失敗 (缺少數字) - 狀態碼: 429, 訊息: Too many requests. Please try again later."
+    },
+    {
+      "test": "密碼驗證: 合格密碼",
+      "passed": false,
+      "details": "預期成功 (符合所有要求) - 狀態碼: 429"
+    },
+    {
+      "test": "Email 驗證: notanemail",
+      "passed": false,
+      "details": "預期拒絕無效 email - 狀態碼: 429"
+    },
+    {
+      "test": "Email 驗證: missing@domain",
+      "passed": false,
+      "details": "預期拒絕無效 email - 狀態碼: 429"
+    },
+    {
+      "test": "Email 驗證: @nodomain.com",
+      "passed": false,
+      "details": "預期拒絕無效 email - 狀態碼: 429"
+    },
+    {
+      "test": "Email 驗證: spaces in@email.com",
+      "passed": false,
+      "details": "預期拒絕無效 email - 狀態碼: 429"
+    },
+    {
+      "test": "速率限制觸發",
+      "passed": true,
+      "details": "第 6 次請求被阻擋 (429 Too Many Requests)"
+    },
+    {
+      "test": "安全標頭: X-Frame-Options",
+      "passed": true,
+      "details": "預期: SAMEORIGIN, 實際: SAMEORIGIN"
+    },
+    {
+      "test": "安全標頭: X-Content-Type-Options",
+      "passed": true,
+      "details": "預期: nosniff, 實際: nosniff"
+    },
+    {
+      "test": "Cookie HttpOnly 屬性",
+      "passed": true,
+      "details": "HttpOnly: 是 - 防止 JavaScript 存取"
+    },
+    {
+      "test": "Cookie SameSite 屬性",
+      "passed": true,
+      "details": "SameSite: 是 - 防止 CSRF 攻擊"
+    },
+    {
+      "test": "404 錯誤處理",
+      "passed": true,
+      "details": "狀態碼: 404, 是否洩漏堆疊追蹤: 否"
+    },
+    {
+      "test": "NoSQL 注入防護 #1",
+      "passed": true,
+      "details": "Payload 被 阻擋 - 狀態碼: 401"
+    },
+    {
+      "test": "NoSQL 注入防護 #2",
+      "passed": true,
+      "details": "Payload 被 阻擋 - 狀態碼: 401"
+    },
+    {
+      "test": "XSS 防護（前端）",
+      "passed": true,
+      "details": "已在前端實作 - 使用 textContent 而非 innerHTML"
+    }
+  ]
+}
